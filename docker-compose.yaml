@@ -1,0 +1,13 @@
+services:
+  admin:
+    image:  ollebo/base-admin:dev
+    build: container/admin/.
+    environment: 
+      - CLUSTER=prod
+      - BOUNDARY_ADDR=https://boundery9200
+    volumes:
+      - ./:/code
+      - ~/.kube/basestation:/root/.kube/
+    ports:
+      - 8888
+      - 8889

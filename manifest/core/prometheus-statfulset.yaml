@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels: &Labels
+    k8s-app: prometheus
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: prometheus
+spec:
+  serviceName: "prometheus"
+  replicas: 1
+  podManagementPolicy: "Parallel"
+  updateStrategy:
+    type: "RollingUpdate"
+  selector:
+    matchLabels: *Labels
+  template:
+    metadata:
+      labels: *Labels
+    spec:
+      containers:
+        - name: prometheus-server
+          # Use the `quay.io/prometheus/prometheus:v2.11.1` image
+          image: quay.io/prometheus/prometheus:latest
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus/
+            - --web.console.libraries=/etc/prometheus/console_libraries
+            - --web.console.templates=/etc/prometheus/consoles
+            - --web.enable-lifecycle
+          ports:
+            - containerPort: 9090
+          # Probe the `/-/ready` and `/-/healthy` endpoints
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            initialDelaySeconds: 3600
+            timeoutSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+            initialDelaySeconds: 3600
+            timeoutSeconds: 30
+          # Based on 10 running nodes with 30 pods each
+          # Resource requests of `200m` of CPU and `1000Mi` of memory
+          resources:
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+            requests:
+              cpu: 500m
+              memory: 1000Mi
+          volumeMounts:
+            - name: prometheus-config-volume
+              mountPath: /etc/prometheus/
+            - name: prometheus-volume
+              mountPath: /prometheus/
+      terminationGracePeriodSeconds: 300
+      securityContext:
+          fsGroup: 200
+      volumes:
+        - name: prometheus-config-volume
+          configMap:
+            defaultMode: 420
+            name: prometheus-server-conf
+      # Configures Pod anti-affinity so that Prometheus Pods are assigned to different Nodes. 
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: k8s-app
+                operator: In
+                values:
+                - prometheus
+            topologyKey: "kubernetes.io/hostname"
+  volumeClaimTemplates:
+  - metadata:
+      name: prometheus-volume
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 30Gi
