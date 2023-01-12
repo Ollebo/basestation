@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: temp-sensor
+  namespace: sensors
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "8080"   
+  labels:
+    app: temp-sensor
+spec:
+  selector:
+    matchLabels:
+      app: temp-sensor
+  template:
+    metadata:
+      labels:
+        app: temp-sensor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8080" 
+    spec:
+      hostNetwork: true 
+      nodeSelector:
+        sensor: temp-sensor
+      containers:
+        - image: ollebo/temp:test
+          imagePullPolicy: Always
+          name: tem-sensor
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["NET_ADMIN", "SYS_ADMIN","CAP_SYS_ADMIN"]
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+          volumeMounts:
+          - name: shared-data
+            mountPath: /midevices
+          - mountPath: /sys
+            name: sys
+          - mountPath: /dev
+            name: dev
+      volumes:
+      - name: shared-data
+        emptyDir: {}
+      - name: sys
+        hostPath:
+          path: /sys
+          type: Directory
+      - name: dev
+        hostPath:
+          path: /dev
+          type: Directory

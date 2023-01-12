@@ -23,8 +23,10 @@ spec:
     k8s-app: prometheus
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/component: prometheus
+  type: NodePort
   ports:
   - name: promui
     protocol: TCP
     port: 9090
     targetPort: 9090
+

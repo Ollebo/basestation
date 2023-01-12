@@ -37,13 +37,13 @@ spec:
             httpGet:
               path: /-/ready
               port: 9090
-            initialDelaySeconds: 3600
+            initialDelaySeconds: 360
             timeoutSeconds: 30
           livenessProbe:
             httpGet:
               path: /-/healthy
               port: 9090
-            initialDelaySeconds: 3600
+            initialDelaySeconds: 360
             timeoutSeconds: 30
           # Based on 10 running nodes with 30 pods each
           # Resource requests of `200m` of CPU and `1000Mi` of memory
